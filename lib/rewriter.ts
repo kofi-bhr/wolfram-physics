@@ -192,7 +192,8 @@ export function evolve(
     rule: ParsedRule,
     initial: State,
     steps: number,
-    maxNodes: number = 50000
+    maxNodes: number = 50000,
+    onProgress?: (step: number, nodes: number, edges: number) => void
 ): EvolutionResult {
     const states: State[] = [initial];
 
@@ -226,6 +227,10 @@ export function evolve(
         const uniqueNodes = new Set<number>();
         for (const rel of current) {
             for (const n of rel) uniqueNodes.add(n);
+        }
+
+        if (onProgress) {
+            onProgress(step, uniqueNodes.size, current.length);
         }
 
         if (uniqueNodes.size > maxNodes) {

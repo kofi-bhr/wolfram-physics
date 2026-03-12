@@ -14,7 +14,7 @@ export interface WorkerRequest {
 }
 
 export interface WorkerResponse {
-    type: 'result' | 'error';
+    type: 'result' | 'error' | 'progress';
     states?: number[][][];
     allPositions?: Array<Array<[number, { x: number; y: number }]>>;
     nodeCount?: number;
@@ -23,7 +23,9 @@ export interface WorkerResponse {
     truncated?: boolean;
     haltedAtStep?: number | null;
     step?: number;
+    totalSteps?: number;
     error?: string;
+    p_type?: 'parsing' | 'evolving' | 'layout' | 'idle';
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {
@@ -50,7 +52,20 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     }
 
     // Evolve
-    const evolution = evolve(ruleResult, initial, steps);
+    (self as unknown as Worker).postMessage({
+        type: 'progress',
+        p_type: 'parsing'
+    } as WorkerResponse);
+
+    const evolution = evolve(ruleResult, initial, steps, 50000, (s, n, e) => {
+        (self as unknown as Worker).postMessage({
+            type: 'progress',
+            p_type: 'evolving',
+            step: s,
+            nodeCount: n,
+            edgeCount: e
+        } as WorkerResponse);
+    });
 
     // Compute layout for each intermediate state
     // Use previous positions as starting points for incremental layout
@@ -58,6 +73,13 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     let prevPositions: Map<number, NodePosition> | undefined;
 
     for (let i = 0; i < evolution.states.length; i++) {
+        (self as unknown as Worker).postMessage({
+            type: 'progress',
+            p_type: 'layout',
+            step: i + 1,
+            totalSteps: evolution.states.length
+        } as WorkerResponse);
+
         const st = evolution.states[i];
         const positions = computeLayout(st, prevPositions);
         prevPositions = positions;

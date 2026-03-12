@@ -1,0 +1,61 @@
+/* ─── Terminal Loader ─── */
+.terminal-loader {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 320px;
+    background: rgba(26, 42, 74, 0.95);
+    color: #4ade80;
+    font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+    font-size: 11px;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    pointer-events: none;
+}
+
+.terminal-header {
+    color: #94a3b8;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px dotted rgba(148, 163, 184, 0.3);
+}
+
+.blip {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0.3;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.terminal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dim-line {
+    color: rgba(74, 222, 128, 0.5);
+}
+
+.active-line {
+    color: #4ade80;
+}

@@ -1,5 +1,9 @@
 /* ─── Reset ─── */
-*, *::before, *::after {
+@import './terminal-loader.css';
+
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -19,7 +23,8 @@
   --drawer-expanded: 320px;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
   background: var(--bg);
@@ -84,7 +89,7 @@ html, body {
   padding: 24px 20px;
 }
 
-.sidebar-section + .sidebar-section {
+.sidebar-section+.sidebar-section {
   border-top: 1px solid var(--border);
 }
 
@@ -132,7 +137,7 @@ html, body {
 }
 
 .validity-dot.valid {
-  background-color: #4a9; 
+  background-color: #4a9;
 }
 
 .validity-dot.invalid {

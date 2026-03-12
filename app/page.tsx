@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { parseRule, parseState, isParseError } from '../lib/parser';
 import Sidebar from './components/Sidebar';
 import MetadataOverlay from './components/MetadataOverlay';
+import TerminalLoader, { type ProgressEvent } from './components/TerminalLoader';
 
 // Dynamic import for Canvas to avoid SSR issues with PixiJS
 const Canvas = dynamic(() => import('./components/Canvas'), { ssr: false });
@@ -39,6 +40,7 @@ export default function Home() {
   const [truncated, setTruncated] = useState(false);
   const [haltedAtStep, setHaltedAtStep] = useState<number | null>(null);
   const [computing, setComputing] = useState(false);
+  const [progressState, setProgressState] = useState<ProgressEvent>({ phase: 'idle' });
   const [metadataVisible, setMetadataVisible] = useState(false);
   const [fadeIn, setFadeIn] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
@@ -63,6 +65,17 @@ export default function Home() {
 
       if (data.type === 'error') {
         setComputing(false);
+        return;
+      }
+
+      if (data.type === 'progress') {
+        setProgressState({
+          phase: data.p_type as ProgressEvent['phase'],
+          step: data.step,
+          totalSteps: data.totalSteps,
+          nodes: data.nodeCount,
+          edges: data.edgeCount
+        });
         return;
       }
 
@@ -132,6 +145,7 @@ export default function Home() {
 
     setMetadataVisible(false);
     setComputing(true);
+    setProgressState({ phase: 'parsing' });
 
     // Stop any running animation
     if (animTimerRef.current) {
@@ -250,7 +264,7 @@ export default function Home() {
 
   return (
     <div className="app">
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', height: '100%' }}>
         <Canvas
           state={currentState}
           positions={positions}
@@ -269,6 +283,7 @@ export default function Home() {
           computing={computing}
           haltedAtStep={haltedAtStep}
         />
+        <TerminalLoader progress={progressState} visible={computing} />
       </div>
       <Sidebar
         ruleText={ruleText}

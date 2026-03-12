@@ -149,10 +149,31 @@ export default function Canvas({
             const w = appRef.current.screen.width;
             const h = appRef.current.screen.height;
 
-            // Animate back to center and scale 1
-            const targetX = w / 2;
-            const targetY = h / 2;
-            const targetScale = 1;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            positions.forEach(pos => {
+                if (pos.x < minX) minX = pos.x;
+                if (pos.x > maxX) maxX = pos.x;
+                if (pos.y < minY) minY = pos.y;
+                if (pos.y > maxY) maxY = pos.y;
+            });
+
+            if (minX === Infinity) {
+                minX = 0; minY = 0; maxX = 0; maxY = 0;
+            }
+
+            const graphWidth = Math.max(maxX - minX, 100);
+            const graphHeight = Math.max(maxY - minY, 100);
+
+            const padding = 100;
+            const scaleX = w / (graphWidth + padding);
+            const scaleY = h / (graphHeight + padding);
+            const targetScale = Math.min(scaleX, scaleY, 2);
+
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            const targetX = w / 2 - centerX * targetScale;
+            const targetY = h / 2 - centerY * targetScale;
 
             offsetRef.current = { x: targetX, y: targetY };
             scaleRef.current = targetScale;
@@ -161,7 +182,7 @@ export default function Canvas({
             graphContainerRef.current.y = targetY;
             graphContainerRef.current.scale.set(targetScale);
         }
-    }, [recenterTrigger]);
+    }, [recenterTrigger, positions]);
 
     // Render graph
     const renderGraph = useCallback(() => {
