@@ -18,6 +18,7 @@ interface SidebarProps {
     edgeThickness: number;
     onEdgeThicknessChange: (v: number) => void;
     onReplay: () => void;
+    onRecenter: () => void;
     ruleValid: boolean;
     ruleSummary: string;
 }
@@ -31,7 +32,7 @@ function SidebarContent(props: SidebarProps) {
         showHyperedgeFill, onToggleHyperedgeFill,
         animateSteps, onToggleAnimate,
         edgeThickness, onEdgeThicknessChange,
-        onReplay,
+        onReplay, onRecenter,
         ruleValid, ruleSummary,
     } = props;
 
@@ -172,6 +173,9 @@ function SidebarContent(props: SidebarProps) {
 
                 <button className="replay-btn" onClick={onReplay}>
                     replay
+                </button>
+                <button className="replay-btn" onClick={onRecenter}>
+                    recenter
                 </button>
             </div>
         </>

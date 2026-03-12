@@ -15,6 +15,7 @@ interface CanvasProps {
     showHyperedgeFill: boolean;
     edgeThickness: number;
     fadeIn?: boolean;
+    recenterTrigger?: number;
 }
 
 export default function Canvas({
@@ -24,6 +25,7 @@ export default function Canvas({
     showHyperedgeFill,
     edgeThickness,
     fadeIn = false,
+    recenterTrigger = 0,
 }: CanvasProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const appRef = useRef<Application | null>(null);
@@ -43,7 +45,7 @@ export default function Canvas({
             const app = new Application();
             await app.init({
                 resizeTo: containerRef.current!,
-                background: 0xffffff,
+                backgroundAlpha: 0,
                 antialias: true,
                 resolution: window.devicePixelRatio || 1,
                 autoDensity: true,
@@ -140,6 +142,26 @@ export default function Canvas({
             el.removeEventListener('wheel', onWheel);
         };
     }, []);
+
+    // Handle recenter trigger
+    useEffect(() => {
+        if (recenterTrigger > 0 && appRef.current && graphContainerRef.current) {
+            const w = appRef.current.screen.width;
+            const h = appRef.current.screen.height;
+
+            // Animate back to center and scale 1
+            const targetX = w / 2;
+            const targetY = h / 2;
+            const targetScale = 1;
+
+            offsetRef.current = { x: targetX, y: targetY };
+            scaleRef.current = targetScale;
+
+            graphContainerRef.current.x = targetX;
+            graphContainerRef.current.y = targetY;
+            graphContainerRef.current.scale.set(targetScale);
+        }
+    }, [recenterTrigger]);
 
     // Render graph
     const renderGraph = useCallback(() => {
@@ -310,7 +332,17 @@ export default function Canvas({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    return <div ref={containerRef} className="canvas-container" />;
+    return (
+        <div
+            ref={containerRef}
+            className="canvas-container"
+            style={{
+                backgroundImage: 'radial-gradient(circle, #e8e8e8 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
+                backgroundColor: '#ffffff'
+            }}
+        />
+    );
 }
 
 function drawArrowhead(

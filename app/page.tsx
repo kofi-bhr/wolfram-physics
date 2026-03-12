@@ -41,6 +41,7 @@ export default function Home() {
   const [computing, setComputing] = useState(false);
   const [metadataVisible, setMetadataVisible] = useState(false);
   const [fadeIn, setFadeIn] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
 
   const [allStates, setAllStates] = useState<number[][][]>([]);
   const [allPositions, setAllPositions] = useState<Map<number, NodePosition>[]>([]);
@@ -257,6 +258,7 @@ export default function Home() {
           showHyperedgeFill={showHyperedgeFill}
           edgeThickness={edgeThickness}
           fadeIn={fadeIn}
+          recenterTrigger={recenterTrigger}
         />
         <MetadataOverlay
           step={currentStep}
@@ -284,6 +286,7 @@ export default function Home() {
         edgeThickness={edgeThickness}
         onEdgeThicknessChange={setEdgeThickness}
         onReplay={handleReplay}
+        onRecenter={() => setRecenterTrigger(t => t + 1)}
         ruleValid={ruleValid}
         ruleSummary={ruleSummary}
       />
