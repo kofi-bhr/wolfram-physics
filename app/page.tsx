@@ -9,9 +9,9 @@ import MetadataOverlay from './components/MetadataOverlay';
 // Dynamic import for Canvas to avoid SSR issues with PixiJS
 const Canvas = dynamic(() => import('./components/Canvas'), { ssr: false });
 
-const DEFAULT_RULE = '{{x,y},{x,z}} -> {{x,z},{x,w},{y,w},{z,w}}';
-const DEFAULT_INITIAL = '{{1,2},{1,3}}';
-const DEFAULT_STEPS = 15;
+const DEFAULT_RULE = '{{x,y}} -> {{x,y},{y,z}}';
+const DEFAULT_INITIAL = '{{1,2}}';
+const DEFAULT_STEPS = 8;
 
 interface NodePosition {
   x: number;
