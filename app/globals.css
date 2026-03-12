@@ -21,7 +21,7 @@
   --drawer-expanded: 320px;
 }
 
-htm.btn-row {
+.btn-row {
   display: flex;
   gap: 8px;
   margin-top: 24px;
@@ -53,6 +53,20 @@ htm.btn-row {
 
 .square-btn:active {
   background: rgba(26, 42, 74, 0.1);
+}
+
+.square-btn.primary {
+  background: var(--navy);
+  color: var(--bg);
+  border-color: var(--navy);
+}
+
+.square-btn.primary:hover {
+  background: rgba(26, 42, 74, 0.9);
+}
+
+.square-btn.primary:active {
+  background: rgba(26, 42, 74, 0.8);
 }
 
 html,
