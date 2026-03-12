@@ -1,6 +1,3 @@
-// ─── Rewrite Web Worker ───
-// Runs rewriting computation + layout off the main thread.
-// Computes layout for every intermediate state (for step animation).
 
 import { parseRule, parseState, isParseError } from '../lib/parser';
 import { evolve, analyzeState } from '../lib/rewriter';
@@ -11,6 +8,7 @@ export interface WorkerRequest {
     ruleText: string;
     initialText: string;
     steps: number;
+    bypassLimits?: boolean;
 }
 
 export interface WorkerResponse {
@@ -43,7 +41,7 @@ function formatState(st: number[][]) {
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {
-    const { ruleText, initialText, steps } = e.data;
+    const { ruleText, initialText, steps, bypassLimits } = e.data;
 
     // Parse rule
     const ruleResult = parseRule(ruleText);
@@ -72,7 +70,8 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         mathString: ruleText
     } as WorkerResponse);
 
-    const evolution = evolve(ruleResult, initial, steps, 50000, (s, n, e, currentState) => {
+    const maxNodesLimit = bypassLimits ? Infinity : 50000;
+    const evolution = evolve(ruleResult, initial, steps, maxNodesLimit, (s, n, e, currentState) => {
         (self as unknown as Worker).postMessage({
             type: 'progress',
             p_type: 'evolving',
@@ -83,8 +82,6 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         } as WorkerResponse);
     });
 
-    // Compute layout for each intermediate state
-    // Use previous positions as starting points for incremental layout
     const allPosArrays: Array<Array<[number, { x: number; y: number }]>> = [];
     let prevPositions: Map<number, NodePosition> | undefined;
 
@@ -97,7 +94,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         } as WorkerResponse);
 
         const st = evolution.states[i];
-        const positions = computeLayout(st, prevPositions);
+        const positions = computeLayout(st, prevPositions, undefined, bypassLimits);
         prevPositions = positions;
 
         const posArray: Array<[number, { x: number; y: number }]> = [];
@@ -107,7 +104,6 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         allPosArrays.push(posArray);
     }
 
-    // Get the final state analysis
     const finalState = evolution.states[evolution.states.length - 1];
     const analysis = analyzeState(finalState);
 

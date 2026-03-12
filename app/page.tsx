@@ -26,6 +26,7 @@ export default function Home() {
 
   const [showLabels, setShowLabels] = useState(false);
   const [animateSteps, setAnimateSteps] = useState(false);
+  const [bypassLimits, setBypassLimits] = useState(false);
   const [edgeThickness, setEdgeThickness] = useState(1.5);
 
   const [ruleValid, setRuleValid] = useState(true);
@@ -150,8 +151,9 @@ export default function Home() {
       ruleText,
       initialText,
       steps,
+      bypassLimits,
     });
-  }, [ruleText, initialText, steps]);
+  }, [ruleText, initialText, steps, bypassLimits]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -290,6 +292,8 @@ export default function Home() {
         onToggleLabels={() => setShowLabels(v => !v)}
         animateSteps={animateSteps}
         onToggleAnimate={() => setAnimateSteps(v => !v)}
+        bypassLimits={bypassLimits}
+        onToggleBypassLimits={() => setBypassLimits(v => !v)}
         edgeThickness={edgeThickness}
         onEdgeThicknessChange={setEdgeThickness}
         onReplay={handleReplay}

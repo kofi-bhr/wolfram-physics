@@ -27,7 +27,8 @@ interface SimLink extends SimulationLinkDatum<SimNode> {
 export function computeLayout(
     state: State,
     prevPositions?: Map<number, NodePosition>,
-    onProgress?: (positions: Map<number, NodePosition>) => void
+    onProgress?: (positions: Map<number, NodePosition>) => void,
+    bypassLimits: boolean = false
 ): Map<number, NodePosition> {
     // Collect unique nodes
     const nodeSet = new Set<number>();
@@ -43,7 +44,7 @@ export function computeLayout(
     const nodeRadius = 4;
 
     const nodeArray = Array.from(nodeSet);
-    const nodeMap = new Map<number, number>(); // id -> index
+    const nodeMap = new Map<number, number>();
     const simNodes: SimNode[] = nodeArray.map((id, i) => {
         nodeMap.set(id, i);
         const prev = prevPositions?.get(id);
@@ -92,7 +93,7 @@ export function computeLayout(
         .force('collide', forceCollide<SimNode>(nodeRadius + 2))
         .stop();
 
-    const maxTicks = nodeCount > 5000 ? 150 : 300;
+    const maxTicks = bypassLimits ? 600 : (nodeCount > 5000 ? 150 : 300);
 
     for (let i = 0; i < maxTicks; i++) {
         simulation.tick();

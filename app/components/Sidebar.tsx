@@ -13,6 +13,8 @@ interface SidebarProps {
     onToggleLabels: () => void;
     animateSteps: boolean;
     onToggleAnimate: () => void;
+    bypassLimits: boolean;
+    onToggleBypassLimits: () => void;
     edgeThickness: number;
     onEdgeThicknessChange: (v: number) => void;
     onReplay: () => void;
@@ -28,6 +30,7 @@ function SidebarContent(props: SidebarProps) {
         steps, onStepsChange,
         showLabels, onToggleLabels,
         animateSteps, onToggleAnimate,
+        bypassLimits, onToggleBypassLimits,
         edgeThickness, onEdgeThicknessChange,
         onReplay, onRecenter,
         ruleValid, ruleSummary,
@@ -135,6 +138,13 @@ function SidebarContent(props: SidebarProps) {
                 <div className="toggle-row">
                     <span className="toggle-label">animate steps</span>
                     <div className={`toggle-pill ${animateSteps ? 'on' : ''}`} onClick={onToggleAnimate}>
+                        <div className="toggle-knob" />
+                    </div>
+                </div>
+
+                <div className="toggle-row">
+                    <span className="toggle-label">bypass limits</span>
+                    <div className={`toggle-pill ${bypassLimits ? 'on' : ''}`} onClick={onToggleBypassLimits}>
                         <div className="toggle-knob" />
                     </div>
                 </div>
