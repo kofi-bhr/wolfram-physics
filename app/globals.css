@@ -1,26 +1,347 @@
-@import "tailwindcss";
+/* ─── Reset ─── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
+/* ─── Tokens ─── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --navy: #1a2a4a;
+  --border: #e8e8e8;
+  --meta: #999;
+  --bg: #ffffff;
+  --toggle-off: #e0e0e0;
+  --toggle-on: #1a2a4a;
+  --text-secondary: #555;
+  --sidebar-width: 280px;
+  --drawer-collapsed: 64px;
+  --drawer-expanded: 320px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--navy);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 12px;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── App Shell ─── */
+.app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ─── Metadata Overlay ─── */
+.metadata-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 11px;
+  color: var(--meta);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.metadata-overlay.visible {
+  opacity: 1;
+}
+
+/* ─── Sidebar (Desktop) ─── */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.sidebar-section {
+  padding: 24px 20px;
+}
+
+.sidebar-section + .sidebar-section {
+  border-top: 1px solid var(--border);
+}
+
+.section-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--meta);
+  letter-spacing: 0.12em;
+  margin-bottom: 14px;
+}
+
+/* ─── Rule Textarea ─── */
+.rule-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 12px;
+  color: var(--navy);
+  padding: 8px 10px;
+  resize: none;
+  outline: none;
+  transition: border-color 300ms ease;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.rule-textarea:focus {
+  border-color: var(--navy);
+}
+
+.rule-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.validity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 300ms ease;
+}
+
+.validity-dot.valid {
+  background-color: #4a9; 
+}
+
+.validity-dot.invalid {
+  background-color: #c44;
+}
+
+.rule-summary {
+  font-size: 9px;
+  color: var(--meta);
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  line-height: 1.4;
+}
+
+/* ─── Parameters ─── */
+.param-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.param-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 55px;
+}
+
+.step-control {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.step-btn {
+  background: none;
+  border: none;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 14px;
+  color: var(--meta);
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  user-select: none;
+}
+
+.step-btn:hover {
+  color: var(--navy);
+}
+
+.step-input {
+  width: 40px;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 12px;
+  color: var(--navy);
+  padding: 4px 2px;
+  outline: none;
+  transition: border-color 300ms ease;
+  -moz-appearance: textfield;
+}
+
+.step-input::-webkit-outer-spin-button,
+.step-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.step-input:focus {
+  border-color: var(--navy);
+}
+
+.init-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 12px;
+  color: var(--navy);
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 300ms ease;
+}
+
+.init-input:focus {
+  border-color: var(--navy);
+}
+
+/* ─── Toggles ─── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.toggle-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.toggle-pill {
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--toggle-off);
+  position: relative;
+  cursor: pointer;
+  transition: background 200ms ease;
+  flex-shrink: 0;
+}
+
+.toggle-pill.on {
+  background: var(--toggle-on);
+}
+
+.toggle-knob {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 200ms ease;
+}
+
+.toggle-pill.on .toggle-knob {
+  transform: translateX(12px);
+}
+
+/* ─── Replay Button ─── */
+.replay-btn {
+  background: none;
+  border: none;
+  font-family: var(--font-geist-mono), 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--meta);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.replay-btn:hover {
+  text-decoration: underline;
+}
+
+/* ─── Mobile Drawer ─── */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .canvas-container {
+    flex: 1;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    z-index: 30;
+    transition: height 500ms ease-out;
+    overflow: hidden;
+  }
+
+  .drawer.collapsed {
+    height: var(--drawer-collapsed);
+  }
+
+  .drawer.expanded {
+    height: var(--drawer-expanded);
+  }
+
+  .drawer-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .drawer-pill {
+    width: 32px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (min-width: 769px) {
+  .drawer {
+    display: none;
+  }
 }
