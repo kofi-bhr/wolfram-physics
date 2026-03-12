@@ -15,6 +15,8 @@ interface SidebarProps {
     onToggleHyperedgeFill: () => void;
     animateSteps: boolean;
     onToggleAnimate: () => void;
+    edgeThickness: number;
+    onEdgeThicknessChange: (v: number) => void;
     onReplay: () => void;
     ruleValid: boolean;
     ruleSummary: string;
@@ -28,6 +30,7 @@ function SidebarContent(props: SidebarProps) {
         showLabels, onToggleLabels,
         showHyperedgeFill, onToggleHyperedgeFill,
         animateSteps, onToggleAnimate,
+        edgeThickness, onEdgeThicknessChange,
         onReplay,
         ruleValid, ruleSummary,
     } = props;
@@ -145,6 +148,25 @@ function SidebarContent(props: SidebarProps) {
                     <span className="toggle-label">animate steps</span>
                     <div className={`toggle-pill ${animateSteps ? 'on' : ''}`} onClick={onToggleAnimate}>
                         <div className="toggle-knob" />
+                    </div>
+                </div>
+
+                <div className="toggle-row" style={{ marginTop: 4 }}>
+                    <span className="toggle-label">edge thickness</span>
+                    <div className="step-control">
+                        <button
+                            className="step-btn"
+                            onClick={() => onEdgeThicknessChange(Math.max(0.5, +(edgeThickness - 0.5).toFixed(1)))}
+                        >
+                            –
+                        </button>
+                        <span style={{ fontSize: 11, minWidth: 24, textAlign: 'center' }}>{edgeThickness}</span>
+                        <button
+                            className="step-btn"
+                            onClick={() => onEdgeThicknessChange(Math.min(5, +(edgeThickness + 0.5).toFixed(1)))}
+                        >
+                            +
+                        </button>
                     </div>
                 </div>
 

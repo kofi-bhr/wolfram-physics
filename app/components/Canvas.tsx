@@ -13,6 +13,7 @@ interface CanvasProps {
     positions: Map<number, NodePosition>;
     showLabels: boolean;
     showHyperedgeFill: boolean;
+    edgeThickness: number;
     fadeIn?: boolean;
 }
 
@@ -21,6 +22,7 @@ export default function Canvas({
     positions,
     showLabels,
     showHyperedgeFill,
+    edgeThickness,
     fadeIn = false,
 }: CanvasProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -152,8 +154,10 @@ export default function Canvas({
         const allBinary = state.every(r => r.length === 2);
         const navy = 0x1a2a4a;
         const nodeRadius = 4;
+        const strokeWidth = edgeThickness;
+        const edgeAlpha = Math.min(0.9, 0.4 + edgeThickness * 0.15);
 
-        // Draw hyperedge fills first (underneath everything)
+        // ─── Hyperedge fills (underneath everything) ───
         if (showHyperedgeFill && !allBinary) {
             const hyperGfx = new Graphics();
             for (const rel of state) {
@@ -174,20 +178,28 @@ export default function Canvas({
             gc.addChild(hyperGfx);
         }
 
-        // Draw edges
-        const edgeGfx = new Graphics();
+        // ─── Edges ───
+        // In PixiJS v8, we draw each edge as its own Graphics object for straight lines,
+        // or batch them into groups. The key insight: each moveTo/lineTo/stroke cycle
+        // creates one stroked path segment properly.
 
         // Track parallel edges for curvature offset
         const edgeCounts = new Map<string, number>();
 
+        // Batch all straight edges into one Graphics
+        const straightGfx = new Graphics();
+        // Separate Graphics for curved edges
+        const curvedGfx = new Graphics();
+        // Separate Graphics for self-loops
+        const loopGfx = new Graphics();
+        // Arrowheads drawn as filled triangles
+        const arrowGfx = new Graphics();
+
         for (const rel of state) {
             // Draw directed edges for consecutive pairs
-            const pairs: [number, number][] = [];
             for (let i = 0; i < rel.length - 1; i++) {
-                pairs.push([rel[i], rel[i + 1]]);
-            }
-
-            for (const [a, b] of pairs) {
+                const a = rel[i];
+                const b = rel[i + 1];
                 const posA = positions.get(a);
                 const posB = positions.get(b);
                 if (!posA || !posB) continue;
@@ -195,10 +207,9 @@ export default function Canvas({
                 if (a === b) {
                     // Self-loop
                     const loopR = 12;
-                    edgeGfx.circle(posA.x + loopR, posA.y - loopR, loopR);
-                    edgeGfx.stroke({ color: navy, width: 1, alpha: 0.6 });
-                    // Small arrowhead at bottom of loop
-                    drawArrowhead(edgeGfx, posA.x + 2, posA.y - 1, posA.x, posA.y, navy);
+                    loopGfx.circle(posA.x + loopR, posA.y - loopR, loopR);
+                    loopGfx.stroke({ color: navy, width: strokeWidth, alpha: edgeAlpha });
+                    drawArrowhead(arrowGfx, posA.x + 2, posA.y - 1, posA.x, posA.y, navy, edgeAlpha, strokeWidth);
                     continue;
                 }
 
@@ -212,11 +223,10 @@ export default function Canvas({
                 const len = Math.sqrt(dx * dx + dy * dy);
 
                 if (count === 0) {
-                    // Straight line
-                    edgeGfx.moveTo(posA.x, posA.y);
-                    edgeGfx.lineTo(posB.x, posB.y);
-                    edgeGfx.stroke({ color: navy, width: 1, alpha: 0.5 });
-                    drawArrowhead(edgeGfx, posA.x, posA.y, posB.x, posB.y, navy);
+                    // Straight line — accumulate in one path, stroke once later
+                    straightGfx.moveTo(posA.x, posA.y);
+                    straightGfx.lineTo(posB.x, posB.y);
+                    drawArrowhead(arrowGfx, posA.x, posA.y, posB.x, posB.y, navy, edgeAlpha, strokeWidth);
                 } else {
                     // Curved line with offset
                     const perpX = -dy / len * count * 10;
@@ -224,26 +234,31 @@ export default function Canvas({
                     const midX = (posA.x + posB.x) / 2 + perpX;
                     const midY = (posA.y + posB.y) / 2 + perpY;
 
-                    edgeGfx.moveTo(posA.x, posA.y);
-                    edgeGfx.quadraticCurveTo(midX, midY, posB.x, posB.y);
-                    edgeGfx.stroke({ color: navy, width: 1, alpha: 0.5 });
-                    // Arrow at end of curve
-                    drawArrowhead(edgeGfx, midX, midY, posB.x, posB.y, navy);
+                    curvedGfx.moveTo(posA.x, posA.y);
+                    curvedGfx.quadraticCurveTo(midX, midY, posB.x, posB.y);
+                    curvedGfx.stroke({ color: navy, width: strokeWidth, alpha: edgeAlpha });
+                    drawArrowhead(arrowGfx, midX, midY, posB.x, posB.y, navy, edgeAlpha, strokeWidth);
                 }
             }
         }
 
-        gc.addChild(edgeGfx);
+        // Single stroke call for all straight edges — most efficient
+        straightGfx.stroke({ color: navy, width: strokeWidth, alpha: edgeAlpha });
 
-        // Draw nodes
+        gc.addChild(straightGfx);
+        gc.addChild(curvedGfx);
+        gc.addChild(loopGfx);
+        gc.addChild(arrowGfx);
+
+        // ─── Nodes ───
         const nodeGfx = new Graphics();
         for (const [, pos] of positions) {
             nodeGfx.circle(pos.x, pos.y, nodeRadius);
-            nodeGfx.fill({ color: navy });
         }
+        nodeGfx.fill({ color: navy });
         gc.addChild(nodeGfx);
 
-        // Draw labels
+        // ─── Labels ───
         if (showLabels) {
             for (const [id, pos] of positions) {
                 const label = new Text({
@@ -274,7 +289,7 @@ export default function Canvas({
                 }
             }, 16);
         }
-    }, [state, positions, showLabels, showHyperedgeFill, fadeIn]);
+    }, [state, positions, showLabels, showHyperedgeFill, edgeThickness, fadeIn]);
 
     useEffect(() => {
         // Small delay to ensure PixiJS is ready
@@ -304,7 +319,9 @@ function drawArrowhead(
     fromY: number,
     toX: number,
     toY: number,
-    color: number
+    color: number,
+    alpha: number,
+    thickness: number
 ) {
     const dx = toX - fromX;
     const dy = toY - fromY;
@@ -314,8 +331,8 @@ function drawArrowhead(
     const ux = dx / len;
     const uy = dy / len;
 
-    const arrowLen = 5;
-    const arrowWidth = 2.5;
+    const arrowLen = 3 + thickness * 1.5;
+    const arrowWidth = 1.5 + thickness;
 
     // Tip at ~4px back from target (node radius)
     const tipX = toX - ux * 5;
@@ -329,5 +346,5 @@ function drawArrowhead(
         baseX - uy * arrowWidth, baseY + ux * arrowWidth,
         baseX + uy * arrowWidth, baseY - ux * arrowWidth,
     ]);
-    gfx.fill({ color, alpha: 0.6 });
+    gfx.fill({ color, alpha });
 }
