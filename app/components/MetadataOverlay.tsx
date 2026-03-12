@@ -20,7 +20,7 @@ export default function MetadataOverlay({
     haltedAtStep,
 }: MetadataOverlayProps) {
     let text = `step ${step}  ·  ${nodeCount.toLocaleString()} nodes  ·  ${edgeCount.toLocaleString()} edges`;
-    if (truncated) text += '  · truncated (hint: toggle "bypass limits")';
+    if (truncated) text += '  · truncated';
     if (haltedAtStep !== null && haltedAtStep !== undefined) {
         text += `  · no matches at step ${haltedAtStep}`;
     }

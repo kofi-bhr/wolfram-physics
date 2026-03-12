@@ -8,7 +8,6 @@ export interface WorkerRequest {
     ruleText: string;
     initialText: string;
     steps: number;
-    bypassLimits?: boolean;
 }
 
 export interface WorkerResponse {
@@ -41,7 +40,7 @@ function formatState(st: number[][]) {
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {
-    const { ruleText, initialText, steps, bypassLimits } = e.data;
+    const { ruleText, initialText, steps } = e.data;
 
     // Parse rule
     const ruleResult = parseRule(ruleText);
@@ -70,8 +69,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         mathString: ruleText
     } as WorkerResponse);
 
-    const maxNodesLimit = bypassLimits ? Infinity : 50000;
-    const evolution = evolve(ruleResult, initial, steps, maxNodesLimit, (s, n, e, currentState) => {
+    const evolution = evolve(ruleResult, initial, steps, 50000, (s, n, e, currentState) => {
         (self as unknown as Worker).postMessage({
             type: 'progress',
             p_type: 'evolving',
@@ -94,7 +92,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         } as WorkerResponse);
 
         const st = evolution.states[i];
-        const positions = computeLayout(st, prevPositions, undefined, bypassLimits);
+        const positions = computeLayout(st, prevPositions);
         prevPositions = positions;
 
         const posArray: Array<[number, { x: number; y: number }]> = [];
