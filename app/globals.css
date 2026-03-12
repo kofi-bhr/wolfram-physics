@@ -1,4 +1,3 @@
-/* ─── Reset ─── */
 @import './terminal-loader.css';
 
 *,
@@ -9,7 +8,6 @@
   box-sizing: border-box;
 }
 
-/* ─── Tokens ─── */
 :root {
   --navy: #1a2a4a;
   --border: #e8e8e8;
@@ -65,7 +63,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── App Shell ─── */
 .app {
   display: flex;
   width: 100vw;
@@ -114,7 +111,6 @@ body {
   height: 100% !important;
 }
 
-/* ─── Metadata Overlay ─── */
 .metadata-overlay {
   position: absolute;
   bottom: 20px;
@@ -132,7 +128,6 @@ body {
   opacity: 1;
 }
 
-/* ─── Sidebar (Desktop) ─── */
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
@@ -170,7 +165,6 @@ body {
   margin-bottom: 14px;
 }
 
-/* ─── Rule Textarea ─── */
 .rule-textarea {
   width: 100%;
   border: 1px solid var(--border);
@@ -220,7 +214,6 @@ body {
   line-height: 1.4;
 }
 
-/* ─── Parameters ─── */
 .param-row {
   display: flex;
   align-items: center;
@@ -295,7 +288,6 @@ body {
   border-color: var(--navy);
 }
 
-/* ─── Toggles ─── */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -352,7 +344,6 @@ body {
   transform: translateX(12px);
 }
 
-/* ─── Replay Button ─── */
 .replay-btn {
   background: none;
   border: none;
@@ -370,7 +361,6 @@ body {
   text-decoration: underline;
 }
 
-/* ─── Mobile Drawer ─── */
 @media (max-width: 768px) {
   .app {
     flex-direction: column;

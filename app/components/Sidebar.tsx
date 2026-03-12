@@ -59,7 +59,6 @@ function SidebarContent(props: SidebarProps) {
 
     return (
         <>
-            {/* Rule Section */}
             <div className="sidebar-section">
                 <div className="section-label">Rule</div>
                 <textarea
@@ -79,7 +78,6 @@ function SidebarContent(props: SidebarProps) {
                 </div>
             </div>
 
-            {/* Parameters Section */}
             <div className="sidebar-section">
                 <div className="section-label">Parameters</div>
                 <div className="param-row">
@@ -124,7 +122,6 @@ function SidebarContent(props: SidebarProps) {
                 </div>
             </div>
 
-            {/* Display Section */}
             <div className="sidebar-section">
                 <div className="section-label">Display</div>
 
@@ -183,12 +180,10 @@ export default function Sidebar(props: SidebarProps) {
 
     return (
         <>
-            {/* Desktop sidebar */}
             <aside className="sidebar">
                 <SidebarContent {...props} />
             </aside>
 
-            {/* Mobile drawer */}
             <div className={`drawer ${drawerExpanded ? 'expanded' : 'collapsed'}`}>
                 <div className="drawer-handle" onClick={() => setDrawerExpanded(!drawerExpanded)}>
                     <div className="drawer-pill" />

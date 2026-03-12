@@ -1,6 +1,3 @@
-// ─── Force-Directed Layout Engine ───
-// Wraps d3-force for positioning hypergraph nodes.
-
 import {
     forceSimulation,
     forceLink,
@@ -27,10 +24,6 @@ interface SimLink extends SimulationLinkDatum<SimNode> {
     target: number | SimNode;
 }
 
-/**
- * Compute layout for a hypergraph state.
- * Returns a map from node ID to {x, y} position.
- */
 export function computeLayout(
     state: State,
     prevPositions?: Map<number, NodePosition>,
@@ -45,12 +38,10 @@ export function computeLayout(
     const nodeCount = nodeSet.size;
     if (nodeCount === 0) return new Map();
 
-    // Adaptive parameters based on graph size
     const linkDistance = nodeCount < 500 ? 30 : Math.max(12, 30 - (nodeCount - 500) * 0.004);
     const chargeStrength = nodeCount < 500 ? -80 : Math.max(-20, -80 + (nodeCount - 500) * 0.013);
     const nodeRadius = 4;
 
-    // Build node list
     const nodeArray = Array.from(nodeSet);
     const nodeMap = new Map<number, number>(); // id -> index
     const simNodes: SimNode[] = nodeArray.map((id, i) => {
@@ -63,7 +54,6 @@ export function computeLayout(
         };
     });
 
-    // Build links: consecutive pairs within each relation
     const links: SimLink[] = [];
     const linkSet = new Set<string>();
 
@@ -71,7 +61,7 @@ export function computeLayout(
         for (let i = 0; i < rel.length - 1; i++) {
             const a = rel[i];
             const b = rel[i + 1];
-            if (a === b) continue; // skip self-loops for force simulation
+            if (a === b) continue;
 
             const key = `${a}-${b}`;
             if (!linkSet.has(key)) {
@@ -80,7 +70,7 @@ export function computeLayout(
             }
         }
 
-        // For hyperedges (3+ elements): add closing spring first↔last
+        // THE BANE OF MY EXISTENCE OH MY GOD DO NOT DELETE THIS OMFG >:(
         if (rel.length >= 3 && rel[0] !== rel[rel.length - 1]) {
             const a = rel[0];
             const b = rel[rel.length - 1];
@@ -92,7 +82,6 @@ export function computeLayout(
         }
     }
 
-    // Create simulation
     const simulation = forceSimulation<SimNode>(simNodes)
         .force('link', forceLink<SimNode, SimLink>(links)
             .distance(linkDistance)
@@ -103,14 +92,11 @@ export function computeLayout(
         .force('collide', forceCollide<SimNode>(nodeRadius + 2))
         .stop();
 
-    // For large graphs, we could stream, but for simplicity run synchronously
-    // Typical convergence takes 300 ticks
     const maxTicks = nodeCount > 5000 ? 150 : 300;
 
     for (let i = 0; i < maxTicks; i++) {
         simulation.tick();
 
-        // Stream progress for large graphs
         if (onProgress && nodeCount > 5000 && i % 20 === 0) {
             const positions = new Map<number, NodePosition>();
             for (const node of simNodes) {
@@ -122,7 +108,6 @@ export function computeLayout(
         if (simulation.alpha() < 0.001) break;
     }
 
-    // Extract final positions
     const positions = new Map<number, NodePosition>();
     for (const node of simNodes) {
         positions.set(node.id, { x: node.x!, y: node.y! });

@@ -27,7 +27,6 @@ export default function ComplexityChart({ states }: ComplexityChartProps) {
     const maxVal = Math.max(maxNodes, maxEdges);
     const minVal = 0;
 
-    // SVG dimensions
     const width = 300;
     const height = 120;
     const paddingX = 10;
@@ -56,7 +55,6 @@ export default function ComplexityChart({ states }: ComplexityChartProps) {
             </div>
             <div style={{ position: 'relative', width: '100%', height: '140px', display: 'flex', alignItems: 'center' }}>
                 <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-                    {/* Grid lines */}
                     <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="var(--border)" strokeWidth="1" />
                     <line x1={paddingX} y1={paddingY} x2={width - paddingX} y2={paddingY} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
 

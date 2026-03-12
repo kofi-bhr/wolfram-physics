@@ -1,5 +1,3 @@
-// ─── Rule & State Parser ───
-// Parses Wolfram-style rewriting notation into structured data.
 
 export interface ParsedRule {
     lhs: string[][];
@@ -20,19 +18,13 @@ export function isParseError(r: ParseRuleResult): r is ParseError {
     return 'error' in r;
 }
 
-/**
- * Tokenize a state/rule-half string: extract nested tuples.
- * Accepts {} or [] interchangeably.
- */
+// hi reader! fun fact; you can use "[]" instead of "{}" if you need to :)
 function tokenizeRelations(s: string): string[][] | null {
     s = s.trim();
-    // Normalize brackets
     s = s.replace(/\[/g, '{').replace(/\]/g, '}');
 
-    // Must start and end with { }
     if (s[0] !== '{' || s[s.length - 1] !== '}') return null;
 
-    // Remove outer braces
     const inner = s.slice(1, -1).trim();
 
     const relations: string[][] = [];
@@ -50,7 +42,6 @@ function tokenizeRelations(s: string): string[][] | null {
         } else if (ch === '}') {
             depth--;
             if (depth === 0) {
-                // Parse the tokens in current
                 const tokens = current.split(',').map(t => t.trim()).filter(t => t.length > 0);
                 if (tokens.length === 0) return null;
                 relations.push(tokens);
@@ -62,7 +53,7 @@ function tokenizeRelations(s: string): string[][] | null {
         if (depth >= 1) {
             current += ch;
         } else if (ch !== ',' && ch !== ' ' && ch !== '\t' && ch !== '\n') {
-            return null; // unexpected character outside relations
+            return null;
         }
     }
 
@@ -79,7 +70,6 @@ function isInteger(token: string): boolean {
 }
 
 export function parseRule(input: string): ParseRuleResult {
-    // Split on -> or →
     const arrowIdx = input.indexOf('->');
     const unicodeArrowIdx = input.indexOf('→');
 
@@ -101,7 +91,6 @@ export function parseRule(input: string): ParseRuleResult {
     if (!lhs || lhs.length === 0) return { error: 'Invalid LHS' };
     if (!rhs || rhs.length === 0) return { error: 'Invalid RHS' };
 
-    // Validate all tokens are variables
     for (const rel of lhs) {
         for (const tok of rel) {
             if (!isVariable(tok)) return { error: `Invalid LHS token: ${tok}` };
@@ -127,14 +116,9 @@ export function parseRule(input: string): ParseRuleResult {
     return { lhs, rhs, lhsVars, rhsVars, newVars, summary };
 }
 
-/**
- * Parse concrete state: integers only.
- * Also accepts named shorthands: loop, edge, triangle.
- */
 export function parseState(input: string): number[][] | null {
     const trimmed = input.trim().toLowerCase();
 
-    // Named shorthands
     if (trimmed === 'loop') return [[1, 1]];
     if (trimmed === 'edge') return [[1, 2]];
     if (trimmed === 'triangle') return [[1, 2], [2, 3], [3, 1]];

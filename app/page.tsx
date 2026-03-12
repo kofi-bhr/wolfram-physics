@@ -8,7 +8,6 @@ import MetadataOverlay from './components/MetadataOverlay';
 import TerminalLoader, { type ProgressEvent } from './components/TerminalLoader';
 import ComplexityChart from './components/ComplexityChart';
 
-// Dynamic import for Canvas to avoid SSR issues with PixiJS
 const Canvas = dynamic(() => import('./components/Canvas'), { ssr: false });
 
 const DEFAULT_RULE = '{{x,y}} -> {{x,y},{y,z}}';
@@ -54,7 +53,6 @@ export default function Home() {
   const animStepRef = useRef(0);
   const isAnimatingRef = useRef(false);
 
-  // Initialize Web Worker
   useEffect(() => {
     const worker = new Worker(
       new URL('../workers/rewrite.worker.ts', import.meta.url)
@@ -80,7 +78,6 @@ export default function Home() {
       }
 
       if (data.type === 'result') {
-        // Convert all position arrays to Maps
         const positionMaps: Map<number, NodePosition>[] = [];
         for (const posArr of data.allPositions) {
           const posMap = new Map<number, NodePosition>();
@@ -99,8 +96,6 @@ export default function Home() {
         setHaltedAtStep(data.haltedAtStep || null);
         setComputing(false);
 
-        // If animate is on, start step-by-step playback
-        // Otherwise show final state
         setCurrentState(finalState);
         setPositions(finalPosMap);
         setNodeCount(data.nodeCount);
@@ -108,7 +103,6 @@ export default function Home() {
         setCurrentStep(data.step);
         setFadeIn(true);
 
-        // Show metadata after graph settles
         setTimeout(() => setMetadataVisible(true), 600);
         setTimeout(() => setFadeIn(false), 600);
       }
@@ -121,7 +115,6 @@ export default function Home() {
     };
   }, []);
 
-  // Validate rule on change
   useEffect(() => {
     const result = parseRule(ruleText);
     if (isParseError(result)) {
@@ -133,7 +126,6 @@ export default function Home() {
     }
   }, [ruleText]);
 
-  // Trigger computation
   const compute = useCallback(() => {
     if (!workerRef.current) return;
 
@@ -147,7 +139,6 @@ export default function Home() {
     setComputing(true);
     setProgressState({ phase: 'parsing' });
 
-    // Stop any running animation
     if (animTimerRef.current) {
       clearTimeout(animTimerRef.current);
       animTimerRef.current = null;
@@ -162,7 +153,6 @@ export default function Home() {
     });
   }, [ruleText, initialText, steps]);
 
-  // Debounced computation on input change
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -174,11 +164,9 @@ export default function Home() {
     };
   }, [compute]);
 
-  // Step animation playback
   const playAnimation = useCallback(() => {
     if (allStates.length <= 1 || allPositions.length <= 1) return;
 
-    // Stop any existing animation
     if (animTimerRef.current) {
       clearTimeout(animTimerRef.current);
     }
@@ -195,7 +183,6 @@ export default function Home() {
       const st = allStates[i];
       const pos = allPositions[i] || new Map();
 
-      // Count nodes/edges for this step
       const nodeSet = new Set<number>();
       for (const rel of st) {
         for (const n of rel) nodeSet.add(n);
@@ -219,18 +206,15 @@ export default function Home() {
     playStep();
   }, [allStates, allPositions]);
 
-  // Auto-start animation when animate toggle turns on and we have states
   useEffect(() => {
     if (animateSteps && allStates.length > 1 && allPositions.length > 1) {
       playAnimation();
     } else {
-      // Stop animation when toggle turns off
       if (animTimerRef.current) {
         clearTimeout(animTimerRef.current);
         animTimerRef.current = null;
       }
       isAnimatingRef.current = false;
-      // Show final state
       if (allStates.length > 0 && allPositions.length > 0) {
         const finalState = allStates[allStates.length - 1];
         const finalPos = allPositions[allPositions.length - 1] || new Map();

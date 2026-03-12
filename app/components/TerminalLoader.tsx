@@ -21,7 +21,6 @@ export default function TerminalLoader({ progress, visible }: TerminalLoaderProp
     const scrollRef = useRef<HTMLDivElement>(null);
     const [log, setLog] = useState<string[]>([]);
 
-    // Spinner animation
     useEffect(() => {
         if (!visible) return;
         const interval = setInterval(() => {
@@ -30,7 +29,6 @@ export default function TerminalLoader({ progress, visible }: TerminalLoaderProp
         return () => clearInterval(interval);
     }, [visible]);
 
-    // Append to log when phase/step changes
     useEffect(() => {
         if (!visible || progress.phase === 'idle') {
             return;
@@ -62,12 +60,10 @@ export default function TerminalLoader({ progress, visible }: TerminalLoaderProp
                     newLog.push(line);
                 }
             }
-            // Keep a longer history since we are scrollable now
             return newLog.slice(-50);
         });
     }, [progress, visible, frame]);
 
-    // Auto-scroll to bottom
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

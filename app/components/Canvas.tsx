@@ -56,7 +56,6 @@ export default function Canvas({
             app.stage.addChild(graphContainer);
             graphContainerRef.current = graphContainer;
 
-            // Set initial offset to center
             const w = app.screen.width;
             const h = app.screen.height;
             offsetRef.current = { x: w / 2, y: h / 2 };
@@ -75,7 +74,6 @@ export default function Canvas({
         };
     }, []);
 
-    // Pan/zoom handlers
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
@@ -141,7 +139,6 @@ export default function Canvas({
         };
     }, []);
 
-    // Handle recenter trigger
     useEffect(() => {
         if (recenterTrigger > 0 && appRef.current && graphContainerRef.current) {
             const w = appRef.current.screen.width;
@@ -182,12 +179,10 @@ export default function Canvas({
         }
     }, [recenterTrigger, positions]);
 
-    // Render graph
     const renderGraph = useCallback(() => {
         const gc = graphContainerRef.current;
         if (!gc || !appRef.current) return;
 
-        // Clear previous
         gc.removeChildren();
 
         if (state.length === 0 || positions.size === 0) return;
@@ -198,28 +193,14 @@ export default function Canvas({
         const strokeWidth = edgeThickness;
         const edgeAlpha = Math.min(0.9, 0.4 + edgeThickness * 0.15);
 
-        // ─── Hyperedge fills (underneath everything) ───
-        // This feature was removed.
-
-        // ─── Edges ───
-        // In PixiJS v8, we draw each edge as its own Graphics object for straight lines,
-        // or batch them into groups. The key insight: each moveTo/lineTo/stroke cycle
-        // creates one stroked path segment properly.
-
-        // Track parallel edges for curvature offset
         const edgeCounts = new Map<string, number>();
 
-        // Batch all straight edges into one Graphics
         const straightGfx = new Graphics();
-        // Separate Graphics for curved edges
         const curvedGfx = new Graphics();
-        // Separate Graphics for self-loops
         const loopGfx = new Graphics();
-        // Arrowheads drawn as filled triangles
         const arrowGfx = new Graphics();
 
         for (const rel of state) {
-            // Draw directed edges for consecutive pairs
             for (let i = 0; i < rel.length - 1; i++) {
                 const a = rel[i];
                 const b = rel[i + 1];
@@ -228,7 +209,6 @@ export default function Canvas({
                 if (!posA || !posB) continue;
 
                 if (a === b) {
-                    // Self-loop
                     const loopR = 12;
                     loopGfx.circle(posA.x + loopR, posA.y - loopR, loopR);
                     loopGfx.stroke({ color: navy, width: strokeWidth, alpha: edgeAlpha });
@@ -236,7 +216,6 @@ export default function Canvas({
                     continue;
                 }
 
-                // Determine curve offset for parallel edges
                 const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
                 const count = edgeCounts.get(key) || 0;
                 edgeCounts.set(key, count + 1);
@@ -246,12 +225,10 @@ export default function Canvas({
                 const len = Math.sqrt(dx * dx + dy * dy);
 
                 if (count === 0) {
-                    // Straight line — accumulate in one path, stroke once later
                     straightGfx.moveTo(posA.x, posA.y);
                     straightGfx.lineTo(posB.x, posB.y);
                     drawArrowhead(arrowGfx, posA.x, posA.y, posB.x, posB.y, navy, edgeAlpha, strokeWidth);
                 } else {
-                    // Curved line with offset
                     const perpX = -dy / len * count * 10;
                     const perpY = dx / len * count * 10;
                     const midX = (posA.x + posB.x) / 2 + perpX;
@@ -265,7 +242,6 @@ export default function Canvas({
             }
         }
 
-        // Single stroke call for all straight edges — most efficient
         straightGfx.stroke({ color: navy, width: strokeWidth, alpha: edgeAlpha });
 
         gc.addChild(straightGfx);
@@ -273,7 +249,6 @@ export default function Canvas({
         gc.addChild(loopGfx);
         gc.addChild(arrowGfx);
 
-        // ─── Nodes ───
         const nodeGfx = new Graphics();
         for (const [, pos] of positions) {
             nodeGfx.circle(pos.x, pos.y, nodeRadius);
@@ -281,7 +256,6 @@ export default function Canvas({
         nodeGfx.fill({ color: navy });
         gc.addChild(nodeGfx);
 
-        // ─── Labels ───
         if (showLabels) {
             for (const [id, pos] of positions) {
                 const label = new Text({
@@ -298,7 +272,6 @@ export default function Canvas({
             }
         }
 
-        // Fade-in effect
         if (fadeIn) {
             gc.alpha = 0;
             let alpha = 0;
@@ -315,14 +288,12 @@ export default function Canvas({
     }, [state, positions, showLabels, edgeThickness, fadeIn]);
 
     useEffect(() => {
-        // Small delay to ensure PixiJS is ready
         const timer = setTimeout(() => {
             renderGraph();
         }, 50);
         return () => clearTimeout(timer);
     }, [renderGraph]);
 
-    // Handle resize
     useEffect(() => {
         const handleResize = () => {
             if (appRef.current && containerRef.current) {
