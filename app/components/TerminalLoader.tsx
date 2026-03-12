@@ -6,6 +6,7 @@ export interface ProgressEvent {
     totalSteps?: number;
     nodes?: number;
     edges?: number;
+    mathString?: string;
 }
 
 interface TerminalLoaderProps {
@@ -31,59 +32,65 @@ export default function TerminalLoader({ progress, visible }: TerminalLoaderProp
 
     // Append to log when phase/step changes
     useEffect(() => {
-        if (!visible) {
-            if (log.length > 0) setLog([]);
+        if (!visible || progress.phase === 'idle') {
             return;
         }
 
         let line = '';
-        const spinner = SPINNERS[frame];
-
         if (progress.phase === 'parsing') {
-            line = `> [INIT] AST PARSE INITIATED...`;
+            line = `> [COMPILE] AST: ${progress.mathString || '...'}`;
         } else if (progress.phase === 'evolving') {
-            const step = progress.step || 0;
-            line = `> [EVAL] STEP ${step.toString().padStart(2, '0')} :: [V:${progress.nodes} E:${progress.edges}]`;
+            line = `> [EVAL] ${progress.mathString || ''}`;
         } else if (progress.phase === 'layout') {
             const step = progress.step || 0;
             const total = progress.totalSteps || 0;
-            line = `> [D3_F] ANNEALING... [${step}/${total}]`;
+            line = `> [LAYOUT] ANNEALING... [${step}/${total}]`;
         } else {
             line = `> [SLEEP] HALT.`;
         }
 
         setLog((prev) => {
             const newLog = [...prev];
-            // Keep last 4 lines max, but update the current line if it's the same phase
+            // Only update the last line if it's the exact same layout step
             if (newLog.length === 0) {
                 newLog.push(line);
             } else {
                 const last = newLog[newLog.length - 1];
-                if (last.startsWith('> [EVAL]') && line.startsWith('> [EVAL]')) {
-                    newLog[newLog.length - 1] = line;
-                } else if (last.startsWith('> [D3_F]') && line.startsWith('> [D3_F]')) {
+                if (last.startsWith('> [LAYOUT]') && line.startsWith('> [LAYOUT]')) {
                     newLog[newLog.length - 1] = line;
                 } else if (last !== line) {
                     newLog.push(line);
                 }
             }
-            return newLog.slice(-5);
+            // Keep a longer history since we are scrollable now
+            return newLog.slice(-50);
         });
     }, [progress, visible, frame]);
 
-    if (!visible) return null;
+    // Auto-scroll to bottom
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [log]);
 
     return (
-        <div className="terminal-loader" ref={scrollRef}>
-            <div className="terminal-header">
-                <span className="blip"></span> [SYS] CORE REWRITE ENGINE
+        <div className="terminal-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <div className="terminal-header" style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 5, padding: '16px 16px 8px 16px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
+                <span className="blip"></span> calculation steps
             </div>
-            <div className="terminal-body">
-                {log.map((line, i) => (
-                    <div key={i} className={i === log.length - 1 ? 'active-line' : 'dim-line'}>
-                        {i === log.length - 1 ? `${SPINNERS[frame]} ${line.slice(2)}` : line}
-                    </div>
-                ))}
+            <div className="terminal-loader" ref={scrollRef} style={{ flex: 1, padding: '8px 16px 16px 16px', overflowY: 'auto' }}>
+                <div className="terminal-body" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {log.length === 0 && <div className="dim-line">Awaiting input...</div>}
+                    {log.map((line, i) => {
+                        const isActive = visible && i === log.length - 1;
+                        return (
+                            <div key={i} className={isActive ? 'active-line' : 'dim-line'} style={{ wordBreak: 'break-all' }}>
+                                {isActive ? `${SPINNERS[frame]} ${line.slice(2)}` : line}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

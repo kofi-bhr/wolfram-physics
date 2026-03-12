@@ -193,7 +193,7 @@ export function evolve(
     initial: State,
     steps: number,
     maxNodes: number = 50000,
-    onProgress?: (step: number, nodes: number, edges: number) => void
+    onProgress?: (step: number, nodes: number, edges: number, currentState: State) => void
 ): EvolutionResult {
     const states: State[] = [initial];
 
@@ -230,7 +230,7 @@ export function evolve(
         }
 
         if (onProgress) {
-            onProgress(step, uniqueNodes.size, current.length);
+            onProgress(step, uniqueNodes.size, current.length, current);
         }
 
         if (uniqueNodes.size > maxNodes) {

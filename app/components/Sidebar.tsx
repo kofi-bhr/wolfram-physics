@@ -11,8 +11,6 @@ interface SidebarProps {
     onStepsChange: (v: number) => void;
     showLabels: boolean;
     onToggleLabels: () => void;
-    showHyperedgeFill: boolean;
-    onToggleHyperedgeFill: () => void;
     animateSteps: boolean;
     onToggleAnimate: () => void;
     edgeThickness: number;
@@ -29,7 +27,6 @@ function SidebarContent(props: SidebarProps) {
         initialText, onInitialChange,
         steps, onStepsChange,
         showLabels, onToggleLabels,
-        showHyperedgeFill, onToggleHyperedgeFill,
         animateSteps, onToggleAnimate,
         edgeThickness, onEdgeThicknessChange,
         onReplay, onRecenter,
@@ -139,13 +136,6 @@ function SidebarContent(props: SidebarProps) {
                 </div>
 
                 <div className="toggle-row">
-                    <span className="toggle-label">hyperedge fill</span>
-                    <div className={`toggle-pill ${showHyperedgeFill ? 'on' : ''}`} onClick={onToggleHyperedgeFill}>
-                        <div className="toggle-knob" />
-                    </div>
-                </div>
-
-                <div className="toggle-row">
                     <span className="toggle-label">animate steps</span>
                     <div className={`toggle-pill ${animateSteps ? 'on' : ''}`} onClick={onToggleAnimate}>
                         <div className="toggle-knob" />
@@ -171,12 +161,18 @@ function SidebarContent(props: SidebarProps) {
                     </div>
                 </div>
 
-                <button className="replay-btn" onClick={onReplay}>
-                    replay
-                </button>
-                <button className="replay-btn" onClick={onRecenter}>
-                    recenter
-                </button>
+                <div className="btn-row">
+                    <button className="square-btn primary" onClick={onReplay}>
+                        render
+                    </button>
+                    <button className="square-btn" onClick={onRecenter}>
+                        center
+                    </button>
+                </div>
+            </div>
+
+            <div className="sidebar-footer">
+                by kofi :)
             </div>
         </>
     );

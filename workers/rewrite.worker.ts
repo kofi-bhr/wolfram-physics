@@ -26,6 +26,20 @@ export interface WorkerResponse {
     totalSteps?: number;
     error?: string;
     p_type?: 'parsing' | 'evolving' | 'layout' | 'idle';
+    mathString?: string;
+}
+
+const SUB: Record<string, string> = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
+};
+function toSub(str: string) {
+    return str.split('').map(c => SUB[c] || c).join('');
+}
+function formatRelation(rel: number[]) {
+    return `{${rel.map(v => `e${toSub(v.toString())}`).join(',')}}`;
+}
+function formatState(st: number[][]) {
+    return `{${st.map(formatRelation).join(',')}}`;
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>) => {
@@ -54,16 +68,18 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     // Evolve
     (self as unknown as Worker).postMessage({
         type: 'progress',
-        p_type: 'parsing'
+        p_type: 'parsing',
+        mathString: ruleText
     } as WorkerResponse);
 
-    const evolution = evolve(ruleResult, initial, steps, 50000, (s, n, e) => {
+    const evolution = evolve(ruleResult, initial, steps, 50000, (s, n, e, currentState) => {
         (self as unknown as Worker).postMessage({
             type: 'progress',
             p_type: 'evolving',
             step: s,
             nodeCount: n,
-            edgeCount: e
+            edgeCount: e,
+            mathString: formatState(currentState)
         } as WorkerResponse);
     });
 

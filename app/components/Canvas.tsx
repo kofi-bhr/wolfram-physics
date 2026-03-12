@@ -12,7 +12,6 @@ interface CanvasProps {
     state: number[][];
     positions: Map<number, NodePosition>;
     showLabels: boolean;
-    showHyperedgeFill: boolean;
     edgeThickness: number;
     fadeIn?: boolean;
     recenterTrigger?: number;
@@ -22,7 +21,6 @@ export default function Canvas({
     state,
     positions,
     showLabels,
-    showHyperedgeFill,
     edgeThickness,
     fadeIn = false,
     recenterTrigger = 0,
@@ -201,25 +199,7 @@ export default function Canvas({
         const edgeAlpha = Math.min(0.9, 0.4 + edgeThickness * 0.15);
 
         // ─── Hyperedge fills (underneath everything) ───
-        if (showHyperedgeFill && !allBinary) {
-            const hyperGfx = new Graphics();
-            for (const rel of state) {
-                if (rel.length < 3) continue;
-
-                const pts: { x: number; y: number }[] = [];
-                let allFound = true;
-                for (const n of rel) {
-                    const pos = positions.get(n);
-                    if (!pos) { allFound = false; break; }
-                    pts.push(pos);
-                }
-                if (!allFound || pts.length < 3) continue;
-
-                hyperGfx.poly(pts.flatMap(p => [p.x, p.y]));
-                hyperGfx.fill({ color: navy, alpha: 0.08 });
-            }
-            gc.addChild(hyperGfx);
-        }
+        // This feature was removed.
 
         // ─── Edges ───
         // In PixiJS v8, we draw each edge as its own Graphics object for straight lines,
@@ -332,7 +312,7 @@ export default function Canvas({
                 }
             }, 16);
         }
-    }, [state, positions, showLabels, showHyperedgeFill, edgeThickness, fadeIn]);
+    }, [state, positions, showLabels, edgeThickness, fadeIn]);
 
     useEffect(() => {
         // Small delay to ensure PixiJS is ready

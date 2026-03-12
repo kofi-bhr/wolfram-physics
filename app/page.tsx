@@ -6,6 +6,7 @@ import { parseRule, parseState, isParseError } from '../lib/parser';
 import Sidebar from './components/Sidebar';
 import MetadataOverlay from './components/MetadataOverlay';
 import TerminalLoader, { type ProgressEvent } from './components/TerminalLoader';
+import ComplexityChart from './components/ComplexityChart';
 
 // Dynamic import for Canvas to avoid SSR issues with PixiJS
 const Canvas = dynamic(() => import('./components/Canvas'), { ssr: false });
@@ -25,7 +26,6 @@ export default function Home() {
   const [steps, setSteps] = useState(DEFAULT_STEPS);
 
   const [showLabels, setShowLabels] = useState(false);
-  const [showHyperedgeFill, setShowHyperedgeFill] = useState(true);
   const [animateSteps, setAnimateSteps] = useState(false);
   const [edgeThickness, setEdgeThickness] = useState(1.5);
 
@@ -264,26 +264,36 @@ export default function Home() {
 
   return (
     <div className="app">
-      <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-        <Canvas
-          state={currentState}
-          positions={positions}
-          showLabels={showLabels}
-          showHyperedgeFill={showHyperedgeFill}
-          edgeThickness={edgeThickness}
-          fadeIn={fadeIn}
-          recenterTrigger={recenterTrigger}
-        />
-        <MetadataOverlay
-          step={currentStep}
-          nodeCount={nodeCount}
-          edgeCount={edgeCount}
-          visible={metadataVisible}
-          truncated={truncated}
-          computing={computing}
-          haltedAtStep={haltedAtStep}
-        />
-        <TerminalLoader progress={progressState} visible={computing} />
+      <div className="mobile-blur-overlay">
+        <div>
+          <div style={{ fontSize: 24, marginBottom: 16 }}>{'<>'}</div>
+          please use a desktop device for the best visualizer experience
+        </div>
+      </div>
+      <div className="main-content">
+        <div className="canvas-wrapper">
+          <Canvas
+            state={currentState}
+            positions={positions}
+            showLabels={showLabels}
+            edgeThickness={edgeThickness}
+            fadeIn={fadeIn}
+            recenterTrigger={recenterTrigger}
+          />
+          <MetadataOverlay
+            step={currentStep}
+            nodeCount={nodeCount}
+            edgeCount={edgeCount}
+            visible={metadataVisible}
+            truncated={truncated}
+            computing={computing}
+            haltedAtStep={haltedAtStep}
+          />
+        </div>
+        <div className="bottom-panel">
+          <TerminalLoader progress={progressState} visible={computing} />
+          <ComplexityChart states={allStates} />
+        </div>
       </div>
       <Sidebar
         ruleText={ruleText}
@@ -294,8 +304,6 @@ export default function Home() {
         onStepsChange={setSteps}
         showLabels={showLabels}
         onToggleLabels={() => setShowLabels(v => !v)}
-        showHyperedgeFill={showHyperedgeFill}
-        onToggleHyperedgeFill={() => setShowHyperedgeFill(v => !v)}
         animateSteps={animateSteps}
         onToggleAnimate={() => setAnimateSteps(v => !v)}
         edgeThickness={edgeThickness}
