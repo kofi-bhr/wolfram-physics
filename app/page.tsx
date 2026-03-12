@@ -1,65 +1,221 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { parseRule, parseState, isParseError, type ParsedRule } from '../lib/parser';
+import Sidebar from './components/Sidebar';
+import MetadataOverlay from './components/MetadataOverlay';
+
+// Dynamic import for Canvas to avoid SSR issues with PixiJS
+const Canvas = dynamic(() => import('./components/Canvas'), { ssr: false });
+
+const DEFAULT_RULE = '{{x,y},{x,z}} -> {{x,z},{x,w},{y,w},{z,w}}';
+const DEFAULT_INITIAL = '{{1,2},{1,3}}';
+const DEFAULT_STEPS = 15;
+
+interface NodePosition {
+  x: number;
+  y: number;
+}
 
 export default function Home() {
+  const [ruleText, setRuleText] = useState(DEFAULT_RULE);
+  const [initialText, setInitialText] = useState(DEFAULT_INITIAL);
+  const [steps, setSteps] = useState(DEFAULT_STEPS);
+
+  const [showLabels, setShowLabels] = useState(false);
+  const [showHyperedgeFill, setShowHyperedgeFill] = useState(true);
+  const [animateSteps, setAnimateSteps] = useState(false);
+
+  const [ruleValid, setRuleValid] = useState(true);
+  const [ruleSummary, setRuleSummary] = useState('');
+
+  const [currentState, setCurrentState] = useState<number[][]>([]);
+  const [positions, setPositions] = useState<Map<number, NodePosition>>(new Map());
+  const [nodeCount, setNodeCount] = useState(0);
+  const [edgeCount, setEdgeCount] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [truncated, setTruncated] = useState(false);
+  const [haltedAtStep, setHaltedAtStep] = useState<number | null>(null);
+  const [computing, setComputing] = useState(false);
+  const [metadataVisible, setMetadataVisible] = useState(false);
+  const [fadeIn, setFadeIn] = useState(false);
+
+  const [allStates, setAllStates] = useState<number[][][]>([]);
+
+  const workerRef = useRef<Worker | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animFrameRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Initialize Web Worker
+  useEffect(() => {
+    const worker = new Worker(
+      new URL('../workers/rewrite.worker.ts', import.meta.url)
+    );
+
+    worker.onmessage = (e) => {
+      const data = e.data;
+
+      if (data.type === 'error') {
+        setComputing(false);
+        return;
+      }
+
+      if (data.type === 'result') {
+        const posMap = new Map<number, NodePosition>();
+        for (const [id, pos] of data.positions) {
+          posMap.set(id, pos);
+        }
+
+        setAllStates(data.states);
+        setCurrentState(data.states[data.states.length - 1]);
+        setPositions(posMap);
+        setNodeCount(data.nodeCount);
+        setEdgeCount(data.edgeCount);
+        setCurrentStep(data.step);
+        setTruncated(data.truncated || false);
+        setHaltedAtStep(data.haltedAtStep || null);
+        setComputing(false);
+        setFadeIn(true);
+
+        // Show metadata after graph settles
+        setTimeout(() => setMetadataVisible(true), 600);
+        // Reset fadeIn
+        setTimeout(() => setFadeIn(false), 600);
+      }
+    };
+
+    workerRef.current = worker;
+
+    return () => {
+      worker.terminate();
+    };
+  }, []);
+
+  // Validate rule on change
+  useEffect(() => {
+    const result = parseRule(ruleText);
+    if (isParseError(result)) {
+      setRuleValid(false);
+      setRuleSummary('');
+    } else {
+      setRuleValid(true);
+      setRuleSummary(result.summary);
+    }
+  }, [ruleText]);
+
+  // Trigger computation
+  const compute = useCallback(() => {
+    if (!workerRef.current) return;
+
+    const result = parseRule(ruleText);
+    if (isParseError(result)) return;
+
+    const initial = parseState(initialText);
+    if (!initial) return;
+
+    setMetadataVisible(false);
+    setComputing(true);
+
+    workerRef.current.postMessage({
+      type: 'compute',
+      ruleText,
+      initialText,
+      steps,
+    });
+  }, [ruleText, initialText, steps]);
+
+  // Debounced computation on input change
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      compute();
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [compute]);
+
+  // Step animation
+  useEffect(() => {
+    if (!animateSteps || allStates.length <= 1) return;
+
+    // Stop any existing animation
+    if (animFrameRef.current) clearTimeout(animFrameRef.current);
+
+    let stepIdx = 0;
+    const playStep = () => {
+      if (stepIdx >= allStates.length) return;
+
+      // For animation, we need to recompute layout for intermediate states
+      // For simplicity, show intermediate states with the positions we have
+      // (full per-step layout would require worker calls)
+      setCurrentState(allStates[stepIdx]);
+      setCurrentStep(stepIdx);
+
+      stepIdx++;
+      if (stepIdx < allStates.length) {
+        animFrameRef.current = setTimeout(playStep, 800);
+      }
+    };
+
+    playStep();
+
+    return () => {
+      if (animFrameRef.current) clearTimeout(animFrameRef.current);
+    };
+  }, [animateSteps, allStates]);
+
+  const handleReplay = useCallback(() => {
+    setFadeIn(true);
+    setTimeout(() => setFadeIn(false), 600);
+
+    if (animateSteps && allStates.length > 1) {
+      // Re-trigger animation
+      setCurrentState(allStates[0]);
+      setCurrentStep(0);
+      // The useEffect will pick up the change
+    }
+  }, [animateSteps, allStates]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="app">
+      <div style={{ flex: 1, position: 'relative' }}>
+        <Canvas
+          state={currentState}
+          positions={positions}
+          showLabels={showLabels}
+          showHyperedgeFill={showHyperedgeFill}
+          fadeIn={fadeIn}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <MetadataOverlay
+          step={currentStep}
+          nodeCount={nodeCount}
+          edgeCount={edgeCount}
+          visible={metadataVisible}
+          truncated={truncated}
+          computing={computing}
+          haltedAtStep={haltedAtStep}
+        />
+      </div>
+      <Sidebar
+        ruleText={ruleText}
+        onRuleChange={setRuleText}
+        initialText={initialText}
+        onInitialChange={setInitialText}
+        steps={steps}
+        onStepsChange={setSteps}
+        showLabels={showLabels}
+        onToggleLabels={() => setShowLabels(v => !v)}
+        showHyperedgeFill={showHyperedgeFill}
+        onToggleHyperedgeFill={() => setShowHyperedgeFill(v => !v)}
+        animateSteps={animateSteps}
+        onToggleAnimate={() => setAnimateSteps(v => !v)}
+        onReplay={handleReplay}
+        ruleValid={ruleValid}
+        ruleSummary={ruleSummary}
+      />
     </div>
   );
 }
