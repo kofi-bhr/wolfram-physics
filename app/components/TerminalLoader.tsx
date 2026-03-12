@@ -37,26 +37,26 @@ export default function TerminalLoader({ progress, visible }: TerminalLoaderProp
         }
 
         let line = '';
+
         if (progress.phase === 'parsing') {
-            line = `> [COMPILE] AST: ${progress.mathString || '...'}`;
+            line = `parsing rule: ${progress.mathString || ''}`;
         } else if (progress.phase === 'evolving') {
-            line = `> [EVAL] ${progress.mathString || ''}`;
+            line = `${progress.mathString || ''}`;
         } else if (progress.phase === 'layout') {
             const step = progress.step || 0;
             const total = progress.totalSteps || 0;
-            line = `> [LAYOUT] ANNEALING... [${step}/${total}]`;
+            line = `d3-force layout annealing step ${step} of ${total} ...`;
         } else {
-            line = `> [SLEEP] HALT.`;
+            line = `halted...`;
         }
 
         setLog((prev) => {
             const newLog = [...prev];
-            // Only update the last line if it's the exact same layout step
             if (newLog.length === 0) {
                 newLog.push(line);
             } else {
                 const last = newLog[newLog.length - 1];
-                if (last.startsWith('> [LAYOUT]') && line.startsWith('> [LAYOUT]')) {
+                if (last.startsWith('d3-force layout') && line.startsWith('d3-force layout')) {
                     newLog[newLog.length - 1] = line;
                 } else if (last !== line) {
                     newLog.push(line);
@@ -77,16 +77,16 @@ export default function TerminalLoader({ progress, visible }: TerminalLoaderProp
     return (
         <div className="terminal-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--bg)' }}>
             <div className="terminal-header" style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 5, padding: '16px 16px 8px 16px', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
-                <span className="blip"></span> calculation steps
+                calculation steps
             </div>
             <div className="terminal-loader" ref={scrollRef} style={{ flex: 1, padding: '8px 16px 16px 16px', overflowY: 'auto' }}>
                 <div className="terminal-body" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {log.length === 0 && <div className="dim-line">Awaiting input...</div>}
+                    {log.length === 0 && <div className="dim-line">ready...</div>}
                     {log.map((line, i) => {
                         const isActive = visible && i === log.length - 1;
                         return (
                             <div key={i} className={isActive ? 'active-line' : 'dim-line'} style={{ wordBreak: 'break-all' }}>
-                                {isActive ? `${SPINNERS[frame]} ${line.slice(2)}` : line}
+                                {isActive ? `${SPINNERS[frame]} ${line}` : line}
                             </div>
                         );
                     })}
