@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { parseRule, parseState, isParseError, type ParsedRule } from '../lib/parser';
+import { parseRule, parseState, isParseError } from '../lib/parser';
 import Sidebar from './components/Sidebar';
 import MetadataOverlay from './components/MetadataOverlay';
 
@@ -26,6 +26,7 @@ export default function Home() {
   const [showLabels, setShowLabels] = useState(false);
   const [showHyperedgeFill, setShowHyperedgeFill] = useState(true);
   const [animateSteps, setAnimateSteps] = useState(false);
+  const [edgeThickness, setEdgeThickness] = useState(1.5);
 
   const [ruleValid, setRuleValid] = useState(true);
   const [ruleSummary, setRuleSummary] = useState('');
@@ -42,10 +43,13 @@ export default function Home() {
   const [fadeIn, setFadeIn] = useState(false);
 
   const [allStates, setAllStates] = useState<number[][][]>([]);
+  const [allPositions, setAllPositions] = useState<Map<number, NodePosition>[]>([]);
 
   const workerRef = useRef<Worker | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const animFrameRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animStepRef = useRef(0);
+  const isAnimatingRef = useRef(false);
 
   // Initialize Web Worker
   useEffect(() => {
@@ -62,25 +66,36 @@ export default function Home() {
       }
 
       if (data.type === 'result') {
-        const posMap = new Map<number, NodePosition>();
-        for (const [id, pos] of data.positions) {
-          posMap.set(id, pos);
+        // Convert all position arrays to Maps
+        const positionMaps: Map<number, NodePosition>[] = [];
+        for (const posArr of data.allPositions) {
+          const posMap = new Map<number, NodePosition>();
+          for (const [id, pos] of posArr) {
+            posMap.set(id, pos);
+          }
+          positionMaps.push(posMap);
         }
 
+        const finalPosMap = positionMaps[positionMaps.length - 1] || new Map();
+        const finalState = data.states[data.states.length - 1];
+
         setAllStates(data.states);
-        setCurrentState(data.states[data.states.length - 1]);
-        setPositions(posMap);
-        setNodeCount(data.nodeCount);
-        setEdgeCount(data.edgeCount);
-        setCurrentStep(data.step);
+        setAllPositions(positionMaps);
         setTruncated(data.truncated || false);
         setHaltedAtStep(data.haltedAtStep || null);
         setComputing(false);
+
+        // If animate is on, start step-by-step playback
+        // Otherwise show final state
+        setCurrentState(finalState);
+        setPositions(finalPosMap);
+        setNodeCount(data.nodeCount);
+        setEdgeCount(data.edgeCount);
+        setCurrentStep(data.step);
         setFadeIn(true);
 
         // Show metadata after graph settles
         setTimeout(() => setMetadataVisible(true), 600);
-        // Reset fadeIn
         setTimeout(() => setFadeIn(false), 600);
       }
     };
@@ -117,6 +132,13 @@ export default function Home() {
     setMetadataVisible(false);
     setComputing(true);
 
+    // Stop any running animation
+    if (animTimerRef.current) {
+      clearTimeout(animTimerRef.current);
+      animTimerRef.current = null;
+    }
+    isAnimatingRef.current = false;
+
     workerRef.current.postMessage({
       type: 'compute',
       ruleText,
@@ -137,47 +159,93 @@ export default function Home() {
     };
   }, [compute]);
 
-  // Step animation
-  useEffect(() => {
-    if (!animateSteps || allStates.length <= 1) return;
+  // Step animation playback
+  const playAnimation = useCallback(() => {
+    if (allStates.length <= 1 || allPositions.length <= 1) return;
 
     // Stop any existing animation
-    if (animFrameRef.current) clearTimeout(animFrameRef.current);
+    if (animTimerRef.current) {
+      clearTimeout(animTimerRef.current);
+    }
+    isAnimatingRef.current = true;
+    animStepRef.current = 0;
 
-    let stepIdx = 0;
     const playStep = () => {
-      if (stepIdx >= allStates.length) return;
+      const i = animStepRef.current;
+      if (i >= allStates.length || !isAnimatingRef.current) {
+        isAnimatingRef.current = false;
+        return;
+      }
 
-      // For animation, we need to recompute layout for intermediate states
-      // For simplicity, show intermediate states with the positions we have
-      // (full per-step layout would require worker calls)
-      setCurrentState(allStates[stepIdx]);
-      setCurrentStep(stepIdx);
+      const st = allStates[i];
+      const pos = allPositions[i] || new Map();
 
-      stepIdx++;
-      if (stepIdx < allStates.length) {
-        animFrameRef.current = setTimeout(playStep, 800);
+      // Count nodes/edges for this step
+      const nodeSet = new Set<number>();
+      for (const rel of st) {
+        for (const n of rel) nodeSet.add(n);
+      }
+
+      setCurrentState(st);
+      setPositions(pos);
+      setNodeCount(nodeSet.size);
+      setEdgeCount(st.length);
+      setCurrentStep(i);
+      setMetadataVisible(true);
+
+      animStepRef.current = i + 1;
+      if (i + 1 < allStates.length) {
+        animTimerRef.current = setTimeout(playStep, 800);
+      } else {
+        isAnimatingRef.current = false;
       }
     };
 
     playStep();
+  }, [allStates, allPositions]);
+
+  // Auto-start animation when animate toggle turns on and we have states
+  useEffect(() => {
+    if (animateSteps && allStates.length > 1 && allPositions.length > 1) {
+      playAnimation();
+    } else {
+      // Stop animation when toggle turns off
+      if (animTimerRef.current) {
+        clearTimeout(animTimerRef.current);
+        animTimerRef.current = null;
+      }
+      isAnimatingRef.current = false;
+      // Show final state
+      if (allStates.length > 0 && allPositions.length > 0) {
+        const finalState = allStates[allStates.length - 1];
+        const finalPos = allPositions[allPositions.length - 1] || new Map();
+        const nodeSet = new Set<number>();
+        for (const rel of finalState) {
+          for (const n of rel) nodeSet.add(n);
+        }
+        setCurrentState(finalState);
+        setPositions(finalPos);
+        setNodeCount(nodeSet.size);
+        setEdgeCount(finalState.length);
+        setCurrentStep(allStates.length - 1);
+      }
+    }
 
     return () => {
-      if (animFrameRef.current) clearTimeout(animFrameRef.current);
+      if (animTimerRef.current) {
+        clearTimeout(animTimerRef.current);
+      }
     };
-  }, [animateSteps, allStates]);
+  }, [animateSteps, allStates, allPositions, playAnimation]);
 
   const handleReplay = useCallback(() => {
-    setFadeIn(true);
-    setTimeout(() => setFadeIn(false), 600);
-
     if (animateSteps && allStates.length > 1) {
-      // Re-trigger animation
-      setCurrentState(allStates[0]);
-      setCurrentStep(0);
-      // The useEffect will pick up the change
+      playAnimation();
+    } else {
+      setFadeIn(true);
+      setTimeout(() => setFadeIn(false), 600);
     }
-  }, [animateSteps, allStates]);
+  }, [animateSteps, allStates, playAnimation]);
 
   return (
     <div className="app">
@@ -187,6 +255,7 @@ export default function Home() {
           positions={positions}
           showLabels={showLabels}
           showHyperedgeFill={showHyperedgeFill}
+          edgeThickness={edgeThickness}
           fadeIn={fadeIn}
         />
         <MetadataOverlay
@@ -212,6 +281,8 @@ export default function Home() {
         onToggleHyperedgeFill={() => setShowHyperedgeFill(v => !v)}
         animateSteps={animateSteps}
         onToggleAnimate={() => setAnimateSteps(v => !v)}
+        edgeThickness={edgeThickness}
+        onEdgeThicknessChange={setEdgeThickness}
         onReplay={handleReplay}
         ruleValid={ruleValid}
         ruleSummary={ruleSummary}

@@ -135,19 +135,35 @@ function findMatchesGeneral(
 
 /**
  * Apply one step of simultaneous rewriting.
+ * Unmatched relations are KEPT (standard Wolfram model behavior).
+ * Matched relations are replaced by the RHS output.
  */
 export function applyStep(rule: ParsedRule, state: State, nextId: number): StepResult {
     const matches = findMatches(rule.lhs, state);
 
     if (matches.length === 0) {
-        // No matches: state becomes empty per total rewriting (all unmatched relations discarded)
-        // Actually per the PRD: "Relations from the original state that were not part of any match are discarded"
-        // But if NO relations match, the entire state is empty.
-        return { state: [], nextId };
+        // No matches: state is unchanged (nothing to rewrite)
+        return { state: [...state], nextId };
+    }
+
+    // Collect all indices consumed by matches
+    const usedIndices = new Set<number>();
+    for (const match of matches) {
+        for (const idx of match.indices) {
+            usedIndices.add(idx);
+        }
     }
 
     const newState: State = [];
 
+    // Keep unmatched relations (they persist)
+    for (let i = 0; i < state.length; i++) {
+        if (!usedIndices.has(i)) {
+            newState.push(state[i]);
+        }
+    }
+
+    // Add output relations from all matches
     for (const match of matches) {
         // Allocate fresh node labels for new-node variables
         const extendedBinding = { ...match.binding };
@@ -194,14 +210,17 @@ export function evolve(
 
     for (let step = 1; step <= steps; step++) {
         const result = applyStep(rule, current, nextId);
-        nextId = result.nextId;
-        current = result.state;
 
-        if (current.length === 0) {
+        // Detect no-match: if nextId didn't advance AND state length didn't change,
+        // no rewriting happened this step
+        if (result.nextId === nextId && result.state.length === current.length) {
             haltedAtStep = step;
-            states.push(current);
+            states.push(result.state);
             break;
         }
+
+        nextId = result.nextId;
+        current = result.state;
 
         // Count unique nodes
         const uniqueNodes = new Set<number>();

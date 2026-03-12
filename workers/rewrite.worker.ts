@@ -1,5 +1,6 @@
 // ─── Rewrite Web Worker ───
 // Runs rewriting computation + layout off the main thread.
+// Computes layout for every intermediate state (for step animation).
 
 import { parseRule, parseState, isParseError } from '../lib/parser';
 import { evolve, analyzeState } from '../lib/rewriter';
@@ -13,9 +14,9 @@ export interface WorkerRequest {
 }
 
 export interface WorkerResponse {
-    type: 'result' | 'progress' | 'error';
+    type: 'result' | 'error';
     states?: number[][][];
-    positions?: Array<[number, { x: number; y: number }]>;
+    allPositions?: Array<Array<[number, { x: number; y: number }]>>;
     nodeCount?: number;
     edgeCount?: number;
     allBinary?: boolean;
@@ -51,23 +52,31 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     // Evolve
     const evolution = evolve(ruleResult, initial, steps);
 
-    // Get the final state for analysis and layout
+    // Compute layout for each intermediate state
+    // Use previous positions as starting points for incremental layout
+    const allPosArrays: Array<Array<[number, { x: number; y: number }]>> = [];
+    let prevPositions: Map<number, NodePosition> | undefined;
+
+    for (let i = 0; i < evolution.states.length; i++) {
+        const st = evolution.states[i];
+        const positions = computeLayout(st, prevPositions);
+        prevPositions = positions;
+
+        const posArray: Array<[number, { x: number; y: number }]> = [];
+        positions.forEach((pos, id) => {
+            posArray.push([id, pos]);
+        });
+        allPosArrays.push(posArray);
+    }
+
+    // Get the final state analysis
     const finalState = evolution.states[evolution.states.length - 1];
     const analysis = analyzeState(finalState);
-
-    // Compute layout
-    const positions = computeLayout(finalState);
-
-    // Send result
-    const posArray: Array<[number, { x: number; y: number }]> = [];
-    positions.forEach((pos, id) => {
-        posArray.push([id, pos]);
-    });
 
     (self as unknown as Worker).postMessage({
         type: 'result',
         states: evolution.states,
-        positions: posArray,
+        allPositions: allPosArrays,
         nodeCount: analysis.nodeCount,
         edgeCount: analysis.edgeCount,
         allBinary: analysis.allBinary,
