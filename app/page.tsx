@@ -273,6 +273,11 @@ export default function Home() {
             computing={computing}
             haltedAtStep={haltedAtStep}
           />
+          {computing && (
+            <div className="canvas-loader">
+              <div className="spinner"></div>
+            </div>
+          )}
         </div>
         <div className="bottom-panel">
           <TerminalLoader progress={progressState} visible={computing} />

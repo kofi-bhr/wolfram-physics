@@ -308,11 +308,6 @@ export default function Canvas({
         <div
             ref={containerRef}
             className="canvas-container"
-            style={{
-                backgroundImage: 'radial-gradient(circle, #e8e8e8 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-                backgroundColor: '#ffffff'
-            }}
         />
     );
 }
