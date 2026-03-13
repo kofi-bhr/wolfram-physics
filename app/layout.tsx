@@ -9,6 +9,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "rewrite",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

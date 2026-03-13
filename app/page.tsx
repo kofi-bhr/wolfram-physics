@@ -10,9 +10,9 @@ import ComplexityChart from './components/ComplexityChart';
 
 const Canvas = dynamic(() => import('./components/Canvas'), { ssr: false });
 
-const DEFAULT_RULE = '{{x,y}} -> {{x,y},{y,z}}';
-const DEFAULT_INITIAL = '{{1,2}}';
-const DEFAULT_STEPS = 8;
+const DEFAULT_RULE = '{{x, y}, {x, z}} -> {{x, y}, {x, w}, {y, w}, {z, w}}';
+const DEFAULT_INITIAL = '{{1,2},{1,3}}';
+const DEFAULT_STEPS = 1;
 
 interface NodePosition {
   x: number;
